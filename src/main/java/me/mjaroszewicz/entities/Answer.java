@@ -11,11 +11,8 @@ public class Answer {
     @NonNull
     private boolean isCorrect;
 
-    private boolean hasGraphic;
-
     @NonNull
     private String text;
 
-    private String graphicUrl;
 
 }

@@ -1,5 +1,6 @@
 package me.mjaroszewicz.service;
 
+import me.mjaroszewicz.entities.Answer;
 import me.mjaroszewicz.entities.Question;
 import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
@@ -11,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 public class ParserService {
 
     private Pattern answersPattern = Pattern.compile("(X(\\d{2,}))");
+    private Pattern imagePattern = Pattern.compile("(?<=\\[img])\\w+(?=\\[/img])");
 
     private final static Logger log = LoggerFactory.getLogger(ParserService.class);
 
@@ -167,11 +168,49 @@ public class ParserService {
         HttpDownloader downloader = new HttpDownloader();
         String response = downloader.getStringFromUrl(urlBuilder.toString());
 
+        String[] split = response.split("\n");
 
-        System.out.println(extractCorrectAnswerPosition(response));
+        int correctAnswerPosition = extractCorrectAnswerPosition(split[0]);
+        String questionHeader = parseImageString(split[1], directoryName);
+
+        List<Answer> answers = new ArrayList<>();
+
+        for (int i = 2; i < split.length; i++) {
+
+            boolean correct = i - 2 == correctAnswerPosition;
+
+            Answer answer = new Answer(correct, parseImageString(split[i], directoryName));
+
+            System.out.println(answer);
+
+        }
+
+        Question question = new Question(questionHeader, Long.parseLong(name.substring(0, 3)), answers);
+
+        return question;
+    }
+
+    private String parseImageString(String s, String dir){
+
+        if(!s.contains("img"))
+            return s;
+        String img = s.substring(5, s.length() - 6);
 
 
-        return new Question("test", 5L, null);
+        return getCdnUrl(img, dir);
+    }
+
+    /**
+     * @param name name of the file
+     * @param dir test id
+     * @return url to specified file on github content delivery network
+     */
+    private String getCdnUrl(String name, String dir){
+
+        StringBuilder sb = new StringBuilder(cdnUrl);
+        sb.append(dir).append('/').append(name);
+
+        return sb.toString();
     }
 
     /**

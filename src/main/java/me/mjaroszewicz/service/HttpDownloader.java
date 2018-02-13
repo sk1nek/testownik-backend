@@ -46,10 +46,12 @@ public class HttpDownloader {
         //reading response
         BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
         String line;
-        while((line = br.readLine()) != null)
-            bodyBuilder.append(line);
+        while((line = br.readLine()) != null) {
+            bodyBuilder.append(line).append('\n');
+        }
 
         return bodyBuilder.toString();
     }
+
 
 }
