@@ -95,6 +95,29 @@ public class TestRepository {
 
     }
 
+    /**
+     * Updates metadata of test
+     *
+     * @param id Test id
+     * @param title New title
+     * @param desc New description
+     */
+    public void updateMetadata(String id, String title, String desc) {
+
+        Test t;
+
+        try {
+            t = get(id);
+        } catch (EntityNotFoundException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        t.setTitle(title);
+        t.setDescription(desc);
+
+    }
+
 
 
 }

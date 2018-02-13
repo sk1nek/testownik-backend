@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 public class ParserService {
 
     private Pattern answersPattern = Pattern.compile("(X(\\d{2,}))");
-    private Pattern imagePattern = Pattern.compile("(?<=\\[img])\\w+(?=\\[/img])");
 
     private final static Logger log = LoggerFactory.getLogger(ParserService.class);
 
@@ -113,10 +112,12 @@ public class ParserService {
 
     /**
      *
-     * @param p
-     * @return
+     * @param p pair consisting of directory id and partial url
+     * @return complete Test object
      */
     private Test fetchTest(Pair p) throws IOException {
+
+        log.info("Fetching test '" + p.id + "'");
 
         HttpDownloader downloader = new HttpDownloader();
 
@@ -149,6 +150,8 @@ public class ParserService {
         test.setId(p.id);
         test.setQuestions(questions);
         test.setTitle(p.id); //todo
+
+        log.info("Finished");
 
         return test;
     }
@@ -233,8 +236,6 @@ public class ParserService {
 
         return -1;
     }
-
-
 
 
 
