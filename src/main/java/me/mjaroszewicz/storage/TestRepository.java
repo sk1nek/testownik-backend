@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -59,6 +60,16 @@ public class TestRepository {
         String id = t.getId();
         testHolder.put(id, t);
         keysArray.add(id);
+
+    }
+
+    /**
+     * Iterates through provided collections and calls TestRepository#add method on each object
+     * @param tests collection containing valid Tests
+     */
+    public void  addAll(Collection<Test> tests){
+
+        tests.forEach(test -> add(test));
 
     }
 

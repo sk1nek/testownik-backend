@@ -8,22 +8,16 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-@Component
-@Scope(scopeName = "prototype")
+@Service
 public class HttpDownloader {
 
     private HttpClient httpClient;
-
-    @Bean
-    HttpDownloader httpDownloader() {
-
-        return new HttpDownloader();
-    }
 
     /**
      * Basic constructor. It instantiates HttpClient

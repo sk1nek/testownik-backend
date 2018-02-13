@@ -37,13 +37,13 @@ public class RepositoryFetcherService {
     private String repoUrl;
 
     @PostConstruct
-    private void init(){
+    private void init() throws AssertionError{
 
         log.info("Initializing Repository Fetcher Service");
         log.info("GitHub repository address set to: " + repoUrl);
 
         if(repoUrl == null || !repoUrl.contains("https://github.com/"))
-            throw new IllegalArgumentException("Provided github repository url does not link to github. ");
+            throw new AssertionError("Provided github repository url does not link to github. ");
 
     }
 

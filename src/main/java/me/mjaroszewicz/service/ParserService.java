@@ -1,5 +1,7 @@
 package me.mjaroszewicz.service;
 
+import me.mjaroszewicz.entities.Question;
+import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -8,24 +10,45 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 public class ParserService {
 
+    private Pattern answersPattern = Pattern.compile("(X(\\d{2,}))");
+
     private final static Logger log = LoggerFactory.getLogger(ParserService.class);
+
+    @Value("${github.cdn.url}")
+    private String cdnUrl;
+
 
     @Autowired
     private TestRepository testRepository;
 
+    /**
+     * Simple initialization method - checks if cdn url (property 'github.cdn.url') is blank
+     * @throws IllegalStateException if cdn url is null/blank
+     */
     @PostConstruct
-    private void init(){
+    private void init() throws AssertionError{
         log.info("Initializing Parser service. ");
 
+        if(cdnUrl == null || cdnUrl.isEmpty()) {
+            log.error("Fatal error : CDN url empty or null. )");
+            throw new AssertionError();
+        }
 
     }
 
@@ -39,9 +62,23 @@ public class ParserService {
 
         List<Pair> unparsedTests = getDirectoryUrlList(doc);
 
-        unparsedTests.forEach(p -> System.out.println(p.href + " " + p.id));
+        //will count parsing fails
 
+        //using parallel stream hoping it will be faster with bigger repos
+        List<Test> tests = unparsedTests
+                .parallelStream()
+                .flatMap((Pair p) -> {
+                    try {
+                        return Stream.of(fetchTest(p));
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                        log.error("Failed processing of test: " + p.id);
+                    }
+                    return Stream.empty();
+                })
+                .collect(Collectors.toList());
 
+        testRepository.addAll(tests);
 
     }
 
@@ -65,13 +102,98 @@ public class ParserService {
         rows.forEach(p->{
             for (Element href : p.getElementsByAttribute("href")) {
                 if(href.hasClass("js-navigation-open"))
-                    ret.add(new Pair(href.attr("href"), href.html()));
+                    ret.add(new Pair(href.html(), href.attr("href")));
             }
         });
 
 
         return ret;
     }
+
+    /**
+     *
+     * @param p
+     * @return
+     */
+    private Test fetchTest(Pair p) throws IOException {
+
+        HttpDownloader downloader = new HttpDownloader();
+
+        String url = "https://github.com" + p.href;
+
+        String body = downloader.getStringFromUrl(url);
+
+        Document doc = Jsoup.parse(body);
+
+        List<Question> questions = new ArrayList<>();
+
+        doc.select("span.css-truncate.css-truncate-target")
+                .stream()
+                .map(a -> a.getElementsByAttribute("href"))
+                .filter(a -> a.text().contains("txt") || a.text().contains("png"))
+                .filter(a -> !a.isEmpty())
+                .flatMap(a -> Stream.of(a.first()))
+                .filter(a -> a.text().contains(".txt"))
+                .forEach(a -> {
+                    try{
+                        questions.add(questionFromHref(a, p.id));
+                    }catch(Throwable t){
+                        t.printStackTrace();
+                        log.error("Unable to get question from file: " + a.text());
+                    }
+                });
+
+
+
+        return new Test();
+    }
+
+
+    /**Function that processes 'a' html tag into question. Uses HttpDownloader so it may have some impact on performance.
+     *
+     * @param a html 'a' tag containing href to question resource
+     * @return newly built question
+     */
+    private Question questionFromHref(Element a, String directoryName) throws IOException {
+
+
+        String name = a.text();
+
+        System.out.println(name);
+
+        StringBuilder urlBuilder = new StringBuilder(cdnUrl);
+        urlBuilder.append(directoryName).append('/').append(name);
+
+        HttpDownloader downloader = new HttpDownloader();
+        String response = downloader.getStringFromUrl(urlBuilder.toString());
+
+
+        System.out.println(extractCorrectAnswerPosition(response));
+
+
+        return new Question("test", 5L, null);
+    }
+
+    /**
+     * Finds encoded answers matching pattern and extracts position of first '1' from result string. For example: when answers are written as X0001, this function returns 3.
+     * @param string string to be searched
+     * @return position of first matching '1', -1 when nothing could be found;
+     */
+    private int extractCorrectAnswerPosition(String string){
+        Matcher m = answersPattern.matcher(string);
+
+        //preventing IllegalStateException
+        if(m.find()){
+            String group = m.group();
+            for(int i = 1; i < group.length(); i++)
+                if(group.charAt(i) == '1')
+                    return i - 1;
+        }
+
+        return -1;
+    }
+
+
 
 
 
