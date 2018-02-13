@@ -73,6 +73,14 @@ public class TestRepository {
 
     }
 
+    public Test get(String id) throws EntityNotFoundException{
+
+        if(!keysArray.contains(id))
+            throw new EntityNotFoundException("Test not found! ");
+
+        return testHolder.get(id);
+    }
+
     /**
      * Removes Test identified by provided String
      * @param id String representation of id associated with Test object

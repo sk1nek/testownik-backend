@@ -144,9 +144,13 @@ public class ParserService {
                     }
                 });
 
+        Test test = new Test();
+        test.setDescription("Test"); //todo
+        test.setId(p.id);
+        test.setQuestions(questions);
+        test.setTitle(p.id); //todo
 
-
-        return new Test();
+        return test;
     }
 
 
@@ -160,7 +164,6 @@ public class ParserService {
 
         String name = a.text();
 
-        System.out.println(name);
 
         StringBuilder urlBuilder = new StringBuilder(cdnUrl);
         urlBuilder.append(directoryName).append('/').append(name);
@@ -180,8 +183,7 @@ public class ParserService {
             boolean correct = i - 2 == correctAnswerPosition;
 
             Answer answer = new Answer(correct, parseImageString(split[i], directoryName));
-
-            System.out.println(answer);
+            answers.add(answer);
 
         }
 
