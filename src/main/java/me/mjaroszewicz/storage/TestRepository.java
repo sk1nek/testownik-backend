@@ -23,7 +23,8 @@ public class TestRepository {
 
     @PostConstruct
     private void init(){
-        log.debug("Initializing Test Repository. ");
+        log.info("Initializing Test Repository. ");
+
         testHolder = new HashMap<>();
         keysArray = new ArrayList<>();
         generator = new Random();
