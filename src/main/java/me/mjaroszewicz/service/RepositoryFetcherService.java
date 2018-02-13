@@ -59,8 +59,6 @@ public class RepositoryFetcherService {
 
         parserService.parseRepositoryData(httpDownloader.getStringFromUrl(repoUrl));
 
-        log.info("Tests downloaded");
-
         log.info("Beginning metadata fetch");
 
         fetchMetaData();

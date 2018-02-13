@@ -28,4 +28,18 @@ public class MainController {
         return ResponseEntity.ok(test);
     }
 
+    @GetMapping("/tests/random")
+    public ResponseEntity<Test> getRandomTest(){
+
+        Test test;
+        try {
+            test = testRepository.getRandomTest();
+        } catch (EntityNotFoundException e) {
+            e.printStackTrace();
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(test);
+    }
+
 }

@@ -101,10 +101,17 @@ public class ParserService {
 
         rows.forEach(p->{
             for (Element href : p.getElementsByAttribute("href")) {
-                if(href.hasClass("js-navigation-open"))
-                    ret.add(new Pair(href.html(), href.attr("href")));
+                if(href.hasClass("js-navigation-open")) {
+
+                    if(href.html().equals("metadata"))
+                        continue;
+
+                    Pair pair = new Pair(href.html(), href.attr("href"))
+                    ret.add(pair);
+                }
             }
         });
+
 
 
         return ret;
