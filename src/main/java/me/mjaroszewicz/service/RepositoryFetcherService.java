@@ -73,8 +73,6 @@ public class RepositoryFetcherService {
 
         String metadataString = httpDownloader.getStringFromUrl(metadataUrl);
 
-        System.out.println(metadataString);
-
         for (String s : metadataString.split("\n")) {
 
             //skipping comments

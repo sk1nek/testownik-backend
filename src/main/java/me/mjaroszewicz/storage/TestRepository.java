@@ -104,17 +104,19 @@ public class TestRepository {
      */
     public void updateMetadata(String id, String title, String desc) {
 
-        Test t;
+        Test test;
 
         try {
-            t = get(id);
+            test = get(id);
         } catch (EntityNotFoundException e) {
             e.printStackTrace();
             return;
         }
 
-        t.setTitle(title);
-        t.setDescription(desc);
+        test.setTitle(title);
+        test.setDescription(desc);
+
+        testHolder.put(id, test);
 
     }
 

@@ -106,13 +106,11 @@ public class ParserService {
                     if(href.html().equals("metadata"))
                         continue;
 
-                    Pair pair = new Pair(href.html(), href.attr("href"))
+                    Pair pair = new Pair(href.html(), href.attr("href"));
                     ret.add(pair);
                 }
             }
         });
-
-
 
         return ret;
     }
