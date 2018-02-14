@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -150,13 +151,13 @@ public class ParserService {
                     }
                 });
 
+        questions.sort(Comparator.naturalOrder());
+
         Test test = new Test();
-        test.setDescription("Test"); //todo
+        test.setDescription("Default description");
         test.setId(p.id);
         test.setQuestions(questions);
-        test.setTitle(p.id); //todo
-
-        log.info("Finished");
+        test.setTitle(p.id);
 
         return test;
     }

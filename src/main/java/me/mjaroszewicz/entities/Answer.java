@@ -6,13 +6,12 @@ import lombok.NonNull;
 
 @Data
 @AllArgsConstructor
-public class Answer {
+public class Answer{
 
     @NonNull
     private boolean isCorrect;
 
     @NonNull
     private String text;
-
 
 }

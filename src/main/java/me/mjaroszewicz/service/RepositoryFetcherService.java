@@ -57,13 +57,21 @@ public class RepositoryFetcherService {
 
         log.info("Beginning repository synchronization.");
 
+        long start = System.currentTimeMillis();
+
         parserService.parseRepositoryData(httpDownloader.getStringFromUrl(repoUrl));
 
-        log.info("Beginning metadata fetch");
+        long diff = System.currentTimeMillis() - start;
 
+        log.info("Repository synchronization finished in " + diff / 1000 + " seconds");
+
+        start = System.currentTimeMillis();
+
+        log.info("Beginning metadata fetch");
         fetchMetaData();
 
-        log.info("Metadata fetched");
+        diff = System.currentTimeMillis() - start;
+        log.info("Metadata fetched in " + diff / 1000 + " seconds");
 
     }
 

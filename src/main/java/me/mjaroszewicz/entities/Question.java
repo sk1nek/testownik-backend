@@ -7,7 +7,7 @@ import java.util.List;
 
 @Data
 @AllArgsConstructor
-public class Question {
+public class Question implements Comparable<Question>{
 
     private String header;
 
@@ -15,4 +15,10 @@ public class Question {
 
     private List<Answer> answers;
 
+    @Override
+    public int compareTo(Question question) {
+
+        return (int) Math.signum(questionNumber - question.getQuestionNumber());
+
+    }
 }
