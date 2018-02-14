@@ -135,7 +135,7 @@ public class ParserService {
         List<Question> questions = new ArrayList<>();
 
         doc.select("span.css-truncate.css-truncate-target")
-                .stream()
+                .parallelStream()
                 .map(a -> a.getElementsByAttribute("href"))
                 .filter(a -> a.text().contains("txt") || a.text().contains("png"))
                 .filter(a -> !a.isEmpty())
