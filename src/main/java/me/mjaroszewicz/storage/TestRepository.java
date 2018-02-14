@@ -1,15 +1,13 @@
 package me.mjaroszewicz.storage;
 
+import me.mjaroszewicz.entities.Metadata;
 import me.mjaroszewicz.entities.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 @Repository
 public class TestRepository {
@@ -29,6 +27,14 @@ public class TestRepository {
         testHolder = new HashMap<>();
         keysArray = new ArrayList<>();
         generator = new Random();
+    }
+
+    public List<Metadata> getAllMetadata(){
+        ArrayList<Metadata> ret = new ArrayList<>(testHolder.size());
+
+        testHolder.values().forEach(p -> ret.add(p.metadata()));
+
+        return ret;
     }
 
     /**

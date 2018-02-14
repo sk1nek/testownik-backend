@@ -18,4 +18,8 @@ public class Test {
 
     private List<Question> questions;
 
+    public Metadata metadata(){
+        return new Metadata(title, id ,description);
+    }
+
 }

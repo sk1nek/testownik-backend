@@ -20,7 +20,7 @@ public class RepositoryFetcherService {
 
     private final static Logger log = LoggerFactory.getLogger(RepositoryFetcherService.class);
 
-    private final Pattern validMetadataLinePattern = Pattern.compile("\\w+&\\w+&\\w+");
+    private final Pattern validMetadataLinePattern = Pattern.compile("\\w+&\\w+&.+");
 
     @Autowired
     private ParserService parserService;
@@ -85,7 +85,8 @@ public class RepositoryFetcherService {
                 continue;
 
             String[] split = m.group().split("&");
-            testRepository.updateMetadata(split[0], split[1], split[0]);
+
+            testRepository.updateMetadata(split[0], split[1], split[2]);
 
         }
 
