@@ -1,6 +1,8 @@
 package me.mjaroszewicz.entities;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -8,6 +10,8 @@ import java.util.List;
  * Entity containing basic information about test and associated questions/
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class Test {
 
     private String title;
