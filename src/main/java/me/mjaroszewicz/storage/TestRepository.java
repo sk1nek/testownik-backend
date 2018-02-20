@@ -1,5 +1,8 @@
 package me.mjaroszewicz.storage;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import me.mjaroszewicz.entities.Metadata;
 import me.mjaroszewicz.entities.Test;
 import org.slf4j.Logger;
@@ -7,6 +10,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 
 @Repository
@@ -35,6 +41,26 @@ public class TestRepository {
         testHolder.values().forEach(p -> ret.add(p.metadata()));
 
         return ret;
+    }
+
+    /**
+     * Builds Json representation of repository and persists it in file 'db.json'
+     */
+    private void persist(){
+
+        Gson gson = new Gson();
+
+        JsonArray root = new JsonArray();
+
+        testHolder.forEach((k, v) -> root.add(gson.toJsonTree(v)));
+
+        String content = root.getAsString();
+
+        try {
+            Files.write(Paths.get("db.json"), content.getBytes());
+        } catch (IOException e) {
+            log.error("Error: unable to persist database. ", e);
+        }
     }
 
     /**
