@@ -7,6 +7,7 @@ import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
+import org.asynchttpclient.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
@@ -40,7 +42,7 @@ public class GithubAccessorService {
     private TestRepository repository;
 
     @Autowired
-    private HttpDownloader httpDownloader;
+    private AsyncDownloader asyncDownloader;
 
     /**
      * Bean initializing method
@@ -69,38 +71,36 @@ public class GithubAccessorService {
      */
     private void authorize() {
 
-        HttpResponse response = null;
+        Response response = null;
 
         try {
-            response = httpDownloader.getUrl("http://api.github.com/");
-        } catch (IOException e) {
+            response = asyncDownloader.get("http://api.github.com/").block();
+        } catch (Exception e) {
             log.error("Http connection error: " + e);
             throw new IllegalStateException("Could not authorize");
         }
 
-        if (response.getStatusLine().getStatusCode() != 200)
+        if (response.getStatusCode() != 200)
             throw new AssertionError("Http response not OK");
 
-
         //printing headers to enable quick diagnostics
-        for (Header header : response.getAllHeaders())
-            System.out.println(header.toString());
+        for (Map.Entry<String, String> s : response.getHeaders())
+            System.out.println(s.getKey() + " : " + s.getValue());
 
-        Header remainingCalls = response.getFirstHeader("X-RateLimit-Remaining");
-        Header apiResetTime = response.getFirstHeader("X-RateLimit-Reset");
+        String remainingCalls = response.getHeader("X-RateLimit-Remaining");
+        String apiResetTime = response.getHeader("X-RateLimit-Reset");
 
         //formatting reset time to ISO time, ex. '15:30'
-        String resetTimeString = LocalDateTime.ofEpochSecond(Long.parseLong(apiResetTime.getValue()) / 1000, 0, ZoneOffset.ofHours(4)).format(DateTimeFormatter.ISO_TIME);
+        String resetTimeString = LocalDateTime.ofEpochSecond(Long.parseLong(apiResetTime) / 1000, 0, ZoneOffset.ofHours(4)).format(DateTimeFormatter.ISO_TIME);
 
-        log.info("Authorization successful, remaining api requests: " + remainingCalls.getValue() + ", next Api reset: " + resetTimeString);
-
+        log.info("Authorization successful, remaining api requests: " + remainingCalls + ", next Api reset: " + resetTimeString);
     }
 
     /**
      * Performs series of API calls to Github, parses results and persists results in TestRepository
      * @throws IOException
      */
-    public void updateDatabase() throws IOException{
+    public void updateDatabase() throws IOException, ExecutionException, InterruptedException {
 
         String contentsUrl = repoUrl + "contents";
 
@@ -108,92 +108,41 @@ public class GithubAccessorService {
 
         System.out.println("--");
 
-        httpDownloader.getContentRoot(contentsUrl)
-                .parallelStream()
-                .map(this::testFromDirectory)
-                .filter(Test.class::isInstance)
-                .forEach(tests::add);
+        asyncDownloader.go(contentsUrl);
 
         repository.addAll(tests);
 
         System.out.println("finish");
     }
 
+
+
+
+
+
     /**
-     *
-     * @param dir
-     * @return null if http request was unsuccessful
+     *TODO - new docs
+     * @return Repository content root represented as list of json objects
+     * @throws IOException
      */
-    private Test testFromDirectory(JsonObject dir)  {
+    List<JsonObject> getContentRoot(String body){
 
-        HttpDownloader downloader = new HttpDownloader();
+        Gson gson = new Gson();
 
-        String defaultDescription = "Default description";
-        String id = dir.get("path").getAsString();
-        String defaultTitle = id;
-
-        Test ret = new Test(defaultTitle, id, defaultDescription, Collections.emptyList());
-
-        String directoryRootUrl = dir.get("url").getAsString();
-
-        List<JsonObject> files = null;
-        try {
-            files = downloader.getContentRoot(directoryRootUrl);
-        } catch (IOException e) {
-            return null;
+        JsonObject[] strings = null;
+        try{
+            strings = gson.fromJson(body, JsonObject[].class);
+        }catch(Throwable t){
+            System.out.println(body);
         }
 
-        List<Question> questions = files.parallelStream()
-                .map(downloader::parseQuestion)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+        List<JsonObject> ret = new ArrayList<>();
 
-        ret.setQuestions(questions);
-
-        try {
-            downloader.getMetadata(ret, directoryRootUrl);
-        } catch (IOException e) {
-            log.error("Could not fetch metadata for test: " + id);
+        for (JsonObject string : strings) {
+            ret.add(string.getAsJsonObject());
         }
-
-        log.info("Test '" + id + "' parsed");
 
         return ret;
     }
-
-
-
-
-
-
-//    /**
-//     * Performs http GET request to specified url
-//     * @param url valid url
-//     * @return String representation of response body
-//     * @throws IOException if there is any problem with connection
-//     * @throws IllegalStateException when response status is other than 200
-//     */
-//    @Deprecated
-//    public String getStringFromUrl(String url) throws IOException{
-//
-//        StringBuilder bodyBuilder = new StringBuilder();
-//
-//        HttpUriRequest request = RequestBuilder.get(url).addParameter("access_token", oauthToken).build();
-//
-//        HttpResponse response = getHttpClient().execute(request);
-//
-//        if (response.getStatusLine().getStatusCode() != 200) {
-//            System.out.println(request.getRequestLine());
-//            throw new IllegalStateException("Http response status: " + response.getStatusLine());
-//        }
-//        reading response
-//        BufferedReader br = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-//        String line;
-//        while((line = br.readLine()) != null) {
-//            bodyBuilder.append(line).append('\n');
-//        }
-//
-//        return bodyBuilder.toString();
-//    }
 
 }

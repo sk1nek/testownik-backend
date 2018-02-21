@@ -1,6 +1,5 @@
 package me.mjaroszewicz.service;
 
-import me.mjaroszewicz.storage.TestRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.util.regex.Matcher;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 @Service
@@ -43,7 +42,7 @@ public class RepositoryFetcherService {
     }
 
     @Scheduled(fixedDelay = 1000L * 60 * 60)
-    private void synchronizeTestRepositories() throws IOException {
+    private void synchronizeTestRepositories() throws IOException, ExecutionException, InterruptedException {
 
         githubService.updateDatabase();
 
