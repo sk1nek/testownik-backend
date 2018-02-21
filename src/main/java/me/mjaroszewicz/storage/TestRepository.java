@@ -3,6 +3,7 @@ package me.mjaroszewicz.storage;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.internal.bind.JsonTreeReader;
 import me.mjaroszewicz.entities.Metadata;
 import me.mjaroszewicz.entities.Test;
 import org.slf4j.Logger;
@@ -61,6 +62,23 @@ public class TestRepository {
         } catch (IOException e) {
             log.error("Error: unable to persist database. ", e);
         }
+    }
+
+    /**
+     * Loads contents from 'db.json' file and deserializes them into Test class members
+     */
+    private void load() throws IOException{
+
+        Gson gson = new Gson();
+
+        String body = new String(Files.readAllBytes(Paths.get("db.json")));
+
+        JsonArray root = gson.fromJson(body, JsonArray.class);
+
+        root.forEach(p -> {
+            add(gson.fromJson(p, Test.class));
+        });
+
     }
 
     /**
