@@ -1,8 +1,5 @@
 package me.mjaroszewicz.service;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
 import org.asynchttpclient.Response;
 import org.slf4j.Logger;
@@ -16,8 +13,6 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 

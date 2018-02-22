@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.File;
@@ -177,9 +176,9 @@ public class AsyncDownloader {
             return null;
         }
 
-        String s = new String(bytes);
+        String fileContent = new String(bytes); //file content
 
-        List<String> lines = Arrays.asList(s.split("\n"));
+        List<String> lines = Arrays.asList(fileContent.split("\n"));
 
         int correct = 0;
         String firstLine = lines.get(0).substring(1);
@@ -190,15 +189,23 @@ public class AsyncDownloader {
 
         String header = lines.get(1);
 
+        //parsing header
+        Matcher headerMatcher = imgPattern.matcher(header);
+
+        if(headerMatcher.find()){
+            String match = headerMatcher.group(0);
+            header = rawUrl + testId + "/" + match.substring(5, match.length() - 6);
+        }
+
         List<Answer> answers = new ArrayList<>();
         for(int i = 2; i < lines.size(); i++){
 
             String content = lines.get(i);
 
-            Matcher matcher = imgPattern.matcher(content);
+            Matcher answerMatcher = imgPattern.matcher(content);
 
-            if (matcher.find()) {
-                String match = matcher.group(0);
+            if (answerMatcher.find()) {
+                String match = answerMatcher.group(0);
                 content = rawUrl + testId + "/" + match.substring(5, match.length() - 6);
             }
 
