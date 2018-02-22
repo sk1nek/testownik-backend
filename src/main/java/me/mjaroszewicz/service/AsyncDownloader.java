@@ -51,7 +51,7 @@ public class AsyncDownloader {
     private String rawUrl;
 
     //pattern matching content between [img] tags
-    private final static Pattern imgPattern = Pattern.compile("\\[img].*\\[\\\\dupa]");
+    private final static Pattern imgPattern = Pattern.compile("\\[img].*\\[/img]");
 
     @Autowired
     private TestRepository testRepository;
@@ -136,8 +136,13 @@ public class AsyncDownloader {
         String metadata = new String(Files.readAllBytes(directory.toPath().resolve("test.md")));
         JsonObject obj = gson.fromJson(metadata, JsonObject.class);
 
-        test.setTitle(obj.get("title").getAsString());
-        test.setTitle(obj.get("description").getAsString());
+        String title = obj.get("title").getAsString();
+        String desc = obj.get("description").getAsString();
+
+        System.out.println(title + " " + desc);
+
+        test.setTitle(title);
+        test.setDescription(desc);
 
         List<Question> questions =
                 Arrays.stream(directory.listFiles())
@@ -162,7 +167,6 @@ public class AsyncDownloader {
 
         if(f.getName().equals("test.md"))
             return null;
-
 
         byte[] bytes;
 
@@ -193,16 +197,15 @@ public class AsyncDownloader {
 
             Matcher matcher = imgPattern.matcher(content);
 
-            if(matcher.find()){
+            if (matcher.find()) {
                 String match = matcher.group(0);
-                content = match.substring(5, match.length() - 7);
+                content = rawUrl + testId + "/" + match.substring(5, match.length() - 6);
             }
 
             answers.add(new Answer((i - 2) == correct, content));
         }
 
         return new Question(header, answers);
-
     }
 
 }
