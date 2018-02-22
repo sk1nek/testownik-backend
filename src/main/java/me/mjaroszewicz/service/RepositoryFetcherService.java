@@ -21,14 +21,15 @@ public class RepositoryFetcherService {
 
     private final Pattern validMetadataLinePattern = Pattern.compile("\\w+&\\w+&.+");
 
-    @Autowired
-    private GithubAccessorService githubService;
 
     @Value("${github.repo.url}")
     private String repoUrl;
 
     @Value("${github.metadata.url}")
     private String metadataUrl;
+
+    @Autowired
+    private GithubDownloader downloader;
 
     @PostConstruct
     private void init() throws AssertionError{
@@ -44,8 +45,7 @@ public class RepositoryFetcherService {
     @Scheduled(fixedDelay = 1000L * 60 * 60)
     private void synchronizeTestRepositories() throws IOException, ExecutionException, InterruptedException {
 
-        githubService.updateDatabase();
-
+        downloader.go(repoUrl);
 
     }
 

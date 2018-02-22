@@ -24,10 +24,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -56,13 +53,7 @@ public class GithubDownloader {
     @Autowired
     private TestRepository testRepository;
 
-    @PostConstruct
-    private void updateDatabase(){
-        go(repoUrl);
-    }
-
-
-    public Mono<Response> get(String url){
+    Mono<Response> get(String url){
 
         AsyncHttpClient client = Dsl.asyncHttpClient();
 
@@ -186,12 +177,14 @@ public class GithubDownloader {
 
         List<String> lines = Arrays.asList(fileContent.split("\n"));
 
-        int correct = 0;
+        Set<Integer> correct = new HashSet<>();
         String firstLine = lines.get(0).substring(1);
-        //find correct answer number
+        //find correct answer numbers
         for(int i = 0; i < firstLine.length(); i++)
-            if(firstLine.charAt(i) == 'X')
-                correct = i;
+            if(firstLine.charAt(i) == '1')
+                correct.add(i);
+
+        System.out.println(correct);
 
         String header = lines.get(1);
 
@@ -215,7 +208,7 @@ public class GithubDownloader {
                 content = rawUrl + testId + "/" + match.substring(5, match.length() - 6);
             }
 
-            answers.add(new Answer((i - 2) == correct, content));
+            answers.add(new Answer(correct.contains(i - 2), content));
         }
 
         return new Question(header, answers);
