@@ -18,6 +18,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -33,9 +34,9 @@ import java.util.stream.Collectors;
 
 @Component
 @EnableScheduling
-public class AsyncDownloader {
+public class GithubDownloader {
 
-    private static final Logger log = LoggerFactory.getLogger(AsyncDownloader.class);
+    private static final Logger log = LoggerFactory.getLogger(GithubDownloader.class);
 
     @Value("${github.oauth.token}")
     private String oauthToken;
@@ -54,6 +55,11 @@ public class AsyncDownloader {
 
     @Autowired
     private TestRepository testRepository;
+
+    @PostConstruct
+    private void updateDatabase(){
+        go(repoUrl);
+    }
 
 
     public Mono<Response> get(String url){
@@ -74,7 +80,7 @@ public class AsyncDownloader {
      * Starts asynchronous repository fetching process
      * @param url - contents url
      */
-    public void go(String url){
+    void go(String url){
 
        get(url).subscribe(p-> {
 
