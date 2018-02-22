@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Component
@@ -45,9 +47,11 @@ public class AsyncDownloader {
     @Value("${github.repo.url}")
     private String repoUrl;
 
-    private Flux<Test> testFlux;
+    @Value("${github.raw.url}")
+    private String rawUrl;
 
-    private String rootUrl;
+    //pattern matching content between [img] tags
+    private final static Pattern imgPattern = Pattern.compile("\\[img].*\\[\\\\dupa]");
 
     @Autowired
     private TestRepository testRepository;
@@ -137,8 +141,8 @@ public class AsyncDownloader {
 
         List<Question> questions =
                 Arrays.stream(directory.listFiles())
-                        .filter(p-> p.getName().contains(".txt"))
-                        .map(this::questionFromFile)
+                        .filter(p -> p.getName().contains(".txt"))
+                        .map(p -> questionFromFile(p, test.getId()))
                         .filter(Objects::nonNull)
                         .collect(Collectors.toList());
 
@@ -151,9 +155,10 @@ public class AsyncDownloader {
      * Parses question from file. If doing batch operation, results need to be filtered for null occurences.
      *
      * @param f file containing question data
+     * @param testId test id String
      * @return valid question on success, null on IOException during read or when name equals 'test.md'
      */
-    private Question questionFromFile(File f){
+    private Question questionFromFile(File f, String testId){
 
         if(f.getName().equals("test.md"))
             return null;
@@ -183,9 +188,18 @@ public class AsyncDownloader {
 
         List<Answer> answers = new ArrayList<>();
         for(int i = 2; i < lines.size(); i++){
-            answers.add(new Answer((i - 2) == correct, lines.get(i)));
-        }
 
+            String content = lines.get(i);
+
+            Matcher matcher = imgPattern.matcher(content);
+
+            if(matcher.find()){
+                String match = matcher.group(0);
+                content = match.substring(5, match.length() - 7);
+            }
+
+            answers.add(new Answer((i - 2) == correct, content));
+        }
 
         return new Question(header, answers);
 
