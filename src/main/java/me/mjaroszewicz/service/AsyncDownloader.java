@@ -1,8 +1,17 @@
 package me.mjaroszewicz.service;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import me.mjaroszewicz.entities.Answer;
+import me.mjaroszewicz.entities.Question;
 import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
-import org.asynchttpclient.*;
+import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.Dsl;
+import org.asynchttpclient.Request;
+import org.asynchttpclient.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -10,19 +19,31 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Component
 @EnableScheduling
 public class AsyncDownloader {
+
+    private static final Logger log = LoggerFactory.getLogger(AsyncDownloader.class);
 
     @Value("${github.oauth.token}")
     private String oauthToken;
 
     @Value("${http.user.agent}")
     private String userAgent;
+
+    @Value("${github.repo.url}")
+    private String repoUrl;
 
     private Flux<Test> testFlux;
 
@@ -34,97 +55,140 @@ public class AsyncDownloader {
 
     public Mono<Response> get(String url){
 
-        try(AsyncHttpClient client = Dsl.asyncHttpClient()){
+        AsyncHttpClient client = Dsl.asyncHttpClient();
 
             Request request = Dsl
                     .get(url)
                     .addQueryParam("access_token", oauthToken)
+                    .setFollowRedirect(true)
                     .build();
 
             return Mono.fromFuture(client.executeRequest(request).toCompletableFuture());
 
-        }catch (Exception ex){
-            return Mono.error(ex);
-        }
-
     }
 
+    /**
+     * Starts asynchronous repository fetching process
+     * @param url - contents url
+     */
     public void go(String url){
 
+       get(url).subscribe(p-> {
 
+           long start = System.currentTimeMillis();
+
+           log.info("Repository downloaded. ");
+           try {
+               Files.write(Paths.get("repo.zip"), p.getResponseBodyAsBytes());
+               log.info("Repository successfully saved. ");
+
+           } catch (IOException e) {
+               e.printStackTrace();
+               return;
+           }
+
+           FileUtils.unzip(Paths.get("repo.zip"), Paths.get("git"));
+           log.info("Repository unzipped in " + (System.currentTimeMillis() - start) + "ms");
+
+           parseRepository();
+       });
 
     }
 
+    /**
+     *
+     */
+    private void parseRepository(){
+
+        log.info("Beginning repository parse.");
+
+        Path root = Paths.get("git/testownik-baza-master");
+        File[] files = root.toFile().listFiles();
+
+        log.info("Found " + files.length + " test directories. ");
+
+        for (File f : files){
+            try{
+                parseTest(f);
+            }catch (IOException ioex){
+                log.warn("IOException while parsing '" + f.getName() + "': " + ioex.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Creates test from provided directory and forwards it to repository.
+     * @param directory directory containing test
+     */
+    private void parseTest(File directory) throws IOException{
+
+        log.info("Parsing " + directory.getName());
+
+        Test test = new Test();
+        test.setId(directory.getName());
+
+        Gson gson = new Gson();
+
+        String metadata = new String(Files.readAllBytes(directory.toPath().resolve("test.md")));
+        JsonObject obj = gson.fromJson(metadata, JsonObject.class);
+
+        test.setTitle(obj.get("title").getAsString());
+        test.setTitle(obj.get("description").getAsString());
+
+        List<Question> questions =
+                Arrays.stream(directory.listFiles())
+                        .filter(p-> p.getName().contains(".txt"))
+                        .map(this::questionFromFile)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+
+        test.setQuestions(questions);
+
+        testRepository.add(test);
+    }
+
+    /**
+     * Parses question from file. If doing batch operation, results need to be filtered for null occurences.
+     *
+     * @param f file containing question data
+     * @return valid question on success, null on IOException during read or when name equals 'test.md'
+     */
+    private Question questionFromFile(File f){
+
+        if(f.getName().equals("test.md"))
+            return null;
 
 
+        byte[] bytes;
+
+        try{
+            bytes = Files.readAllBytes(f.toPath());
+        }catch (IOException ex){
+            log.warn("Could not read question file: " + f.getPath() + " - " + ex.getMessage());
+            return null;
+        }
+
+        String s = new String(bytes);
+
+        List<String> lines = Arrays.asList(s.split("\n"));
+
+        int correct = 0;
+        String firstLine = lines.get(0).substring(1);
+        //find correct answer number
+        for(int i = 0; i < firstLine.length(); i++)
+            if(firstLine.charAt(i) == 'X')
+                correct = i;
+
+        String header = lines.get(1);
+
+        List<Answer> answers = new ArrayList<>();
+        for(int i = 2; i < lines.size(); i++){
+            answers.add(new Answer((i - 2) == correct, lines.get(i)));
+        }
 
 
+        return new Question(header, answers);
 
-
+    }
 
 }
-
-//    List<JsonObject> getContentRoot(String contentsUrl) throws IOException {
-//
-//        Gson gson = new Gson();
-//
-//        String body = getStringFromUrl(contentsUrl);
-//
-//        JsonObject[] strings = null;
-//        try{
-//            strings = gson.fromJson(body, JsonObject[].class);
-//        }catch(Throwable t){
-//            System.out.println(body);
-//        }
-//
-//        List<JsonObject> ret = new ArrayList<>();
-//
-//        for (JsonObject string : strings) {
-//            ret.add(string.getAsJsonObject());
-//        }
-//
-//        return ret;
-//    }
-//}
-
-//    /**
-//     *
-//     * @param dir
-//     * @return null if http request was unsuccessful
-//     */
-//    private Test testFromDirectory(JsonObject dir)  {
-//
-//        HttpDownloader downloader = new HttpDownloader();
-//
-//        String defaultDescription = "Default description";
-//        String id = dir.get("path").getAsString();
-//        String defaultTitle = id;
-//
-//        Test ret = new Test(defaultTitle, id, defaultDescription, Collections.emptyList());
-//
-//        String directoryRootUrl = dir.get("url").getAsString();
-//
-//        List<JsonObject> files = null;
-//        try {
-//            files = downloader.getContentRoot(directoryRootUrl);
-//        } catch (IOException e) {
-//            return null;
-//        }
-//
-//        List<Question> questions = files.parallelStream()
-//                .map(downloader::parseQuestion)
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toList());
-//
-//        ret.setQuestions(questions);
-//
-//        try {
-//            downloader.getMetadata(ret, directoryRootUrl);
-//        } catch (IOException e) {
-//            log.error("Could not fetch metadata for test: " + id);
-//        }
-//
-//        log.info("Test '" + id + "' parsed");
-//
-//        return ret;
-//    }

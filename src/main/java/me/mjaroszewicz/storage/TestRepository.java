@@ -75,9 +75,7 @@ public class TestRepository {
 
         JsonArray root = gson.fromJson(body, JsonArray.class);
 
-        root.forEach(p -> {
-            add(gson.fromJson(p, Test.class));
-        });
+        root.forEach(p -> add(gson.fromJson(p, Test.class)));
 
     }
 

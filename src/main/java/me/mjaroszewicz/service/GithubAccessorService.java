@@ -2,11 +2,8 @@ package me.mjaroszewicz.service;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
-import me.mjaroszewicz.entities.Question;
 import me.mjaroszewicz.entities.Test;
 import me.mjaroszewicz.storage.TestRepository;
-import org.apache.http.Header;
-import org.apache.http.HttpResponse;
 import org.asynchttpclient.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +16,10 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 @SuppressWarnings("Duplicates")
 @Service
@@ -37,6 +35,9 @@ public class GithubAccessorService {
 
     @Value("${github.repo.url}")
     private String repoUrl;
+
+    @Value("${github.zip.url}")
+    private String zipUrl; //url to repository zip file
 
     @Autowired
     private TestRepository repository;
@@ -74,14 +75,14 @@ public class GithubAccessorService {
         Response response = null;
 
         try {
-            response = asyncDownloader.get("http://api.github.com/").block();
+            response = asyncDownloader.get("https://api.github.com/").block();
         } catch (Exception e) {
             log.error("Http connection error: " + e);
             throw new IllegalStateException("Could not authorize");
         }
 
         if (response.getStatusCode() != 200)
-            throw new AssertionError("Http response not OK");
+            throw new AssertionError("Http response not OK: " + response.getUri().toUrl());
 
         //printing headers to enable quick diagnostics
         for (Map.Entry<String, String> s : response.getHeaders())
@@ -102,17 +103,8 @@ public class GithubAccessorService {
      */
     public void updateDatabase() throws IOException, ExecutionException, InterruptedException {
 
-        String contentsUrl = repoUrl + "contents";
+        asyncDownloader.go(zipUrl);
 
-        List<Test> tests = new ArrayList<>();
-
-        System.out.println("--");
-
-        asyncDownloader.go(contentsUrl);
-
-        repository.addAll(tests);
-
-        System.out.println("finish");
     }
 
 
@@ -120,29 +112,5 @@ public class GithubAccessorService {
 
 
 
-    /**
-     *TODO - new docs
-     * @return Repository content root represented as list of json objects
-     * @throws IOException
-     */
-    List<JsonObject> getContentRoot(String body){
-
-        Gson gson = new Gson();
-
-        JsonObject[] strings = null;
-        try{
-            strings = gson.fromJson(body, JsonObject[].class);
-        }catch(Throwable t){
-            System.out.println(body);
-        }
-
-        List<JsonObject> ret = new ArrayList<>();
-
-        for (JsonObject string : strings) {
-            ret.add(string.getAsJsonObject());
-        }
-
-        return ret;
-    }
 
 }
