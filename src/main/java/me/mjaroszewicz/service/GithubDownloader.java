@@ -18,9 +18,9 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -135,8 +135,6 @@ public class GithubDownloader {
         String title = obj.get("title").getAsString();
         String desc = obj.get("description").getAsString();
 
-        System.out.println(title + " " + desc);
-
         test.setTitle(title);
         test.setDescription(desc);
 
@@ -173,7 +171,7 @@ public class GithubDownloader {
             return null;
         }
 
-        String fileContent = new String(bytes); //file content
+        String fileContent = new String(bytes, Charset.forName("Windows-1250")); //file content
 
         List<String> lines = Arrays.asList(fileContent.split("\n"));
 
@@ -183,8 +181,6 @@ public class GithubDownloader {
         for(int i = 0; i < firstLine.length(); i++)
             if(firstLine.charAt(i) == '1')
                 correct.add(i);
-
-        System.out.println(correct);
 
         String header = lines.get(1);
 

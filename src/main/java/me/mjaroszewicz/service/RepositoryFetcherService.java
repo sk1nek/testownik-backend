@@ -43,7 +43,7 @@ public class RepositoryFetcherService {
     }
 
     @Scheduled(fixedDelay = 1000L * 60 * 60)
-    private void synchronizeTestRepositories() throws IOException, ExecutionException, InterruptedException {
+    private void synchronizeTestRepositories() {
 
         downloader.go(repoUrl);
 
